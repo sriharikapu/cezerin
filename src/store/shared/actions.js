@@ -132,8 +132,8 @@ export const addCartItem = item => async (dispatch, getState) => {
 			web3.eth.accounts[0], // shipper
 			web3.eth.accounts[0], // merchant
 			web3.eth.accounts[0], // customer
-			20, // maxBlocks
-			{ gasLimit: 4712388 },
+			20, // maxBlocks,
+			{ from: accounts[0], value: web3.toWei(amount, 'ether'), gasLimit: 4712388 },
 			cb
 		)
 	);

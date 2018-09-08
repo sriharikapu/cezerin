@@ -23,8 +23,6 @@ module.exports = {
 		]
 	},
 
-	devtool: 'eval-source-map',
-
 	performance: {
 		hints: false
 	},
