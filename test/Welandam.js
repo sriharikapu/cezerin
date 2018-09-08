@@ -26,6 +26,7 @@ contract('Welandam', accounts => {
 		let tx = await welandamInstance.recordOrder(
 			x,
 			1,
+			amount,
 			web3.toWei(amount, 'ether'),
 			[accounts[0]],
 			accounts[0],
@@ -41,12 +42,12 @@ contract('Welandam', accounts => {
 		let order = await welandamInstance.orders(x);
 		assert.equal(order[0], x, 'order was not stored properly');
 		assert.equal(
-			order[2],
+			order[3],
 			web3.toWei(amount, 'ether'),
 			'order was not stored properly'
 		);
-		assert.equal(order[4], accounts[0], 'order was not stored properly');
-		assert.equal(order[7], 1, 'order status was not stored properly');
+		assert.equal(order[5], accounts[0], 'order was not stored properly');
+		assert.equal(order[8], 1, 'order status was not stored properly');
 
 		let relayers = await welandamInstance.getRelayersPerOrderId(x);
 		assert.equal(relayers[0], accounts[0], 'order was not stored properly');
@@ -73,7 +74,7 @@ contract('Welandam', accounts => {
 		tx = await welandamInstance.confirmOrder(x, { from: accounts[0] });
 		order = await welandamInstance.orders(x);
 
-		assert.equal(order[7], 2, 'status was not stored properly');
+		assert.equal(order[8], 2, 'status was not stored properly');
 		assert.equal('OrderConfirmed', tx.logs[0].event);
 		assert.equal(x, tx.logs[0].args.id);
 		assert.equal(accounts[0], tx.logs[0].args.by);
@@ -113,6 +114,7 @@ contract('Welandam', accounts => {
 		await welandamInstance.recordOrder(
 			x,
 			1,
+			amount,
 			web3.toWei(amount, 'ether'),
 			[accounts[0]],
 			accounts[0],
@@ -124,17 +126,18 @@ contract('Welandam', accounts => {
 		let order = await welandamInstance.orders(x);
 		assert.equal(order[0], x, 'order was not stored properly');
 		assert.equal(
-			order[2],
+			order[3],
 			web3.toWei(amount, 'ether'),
 			'order was not stored properly'
 		);
-		assert.equal(order[4], accounts[0], 'order was not stored properly');
-		assert.equal(order[7], 1, 'order status was not stored properly');
+		assert.equal(order[5], accounts[0], 'order was not stored properly');
+		assert.equal(order[8], 1, 'order status was not stored properly');
 
 		// Creating some transactions, to force expiration
 		await welandamInstance.recordOrder(
 			Web3Utils.randomHex(16),
 			1,
+			amount,
 			web3.toWei(amount, 'ether'),
 			[accounts[0]],
 			accounts[0],
@@ -146,6 +149,7 @@ contract('Welandam', accounts => {
 		await welandamInstance.recordOrder(
 			Web3Utils.randomHex(16),
 			1,
+			amount,
 			web3.toWei(amount, 'ether'),
 			[accounts[0]],
 			accounts[0],
@@ -160,6 +164,6 @@ contract('Welandam', accounts => {
 		assert.equal('OrderExpired', tx.logs[0].event);
 		assert.equal(x, tx.logs[0].args.id);
 		order = await welandamInstance.orders(x);
-		assert.equal(order[7], 3, 'status was not stored properly');
+		assert.equal(order[8], 3, 'status was not stored properly');
 	});
 });

@@ -17,8 +17,10 @@ contract Welandam is Ownable {
   struct Order {
     bytes16 id;
     bytes16 itemId;
+    // original amount in USD
+		uint64 amount;
     // amount payable in ether
-    uint64 amount;
+		uint256 amountEther;
     // TODO decide on exactly how we can handle any number of relayers while also encouraging
     // all the network participants to relay everyone elses orders
     // TODO This is a key problem that differentiates welandam from 0x since in 0x, in order to share liquidity for exchange orders there is a natural incentive for relayers to share maker orders
@@ -52,10 +54,10 @@ contract Welandam is Ownable {
     return orders[_id].relayers;
   }
 
-  function recordOrder(bytes16 _id, bytes16 _itemId, uint64 _amount, address[] _relayers, address _shipper, address _merchant, address _customer, uint256 _maxBlocks) public payable {
+  function recordOrder(bytes16 _id, bytes16 _itemId, uint64 _amount, uint256 _amountEther, address[] _relayers, address _shipper, address _merchant, address _customer, uint256 _maxBlocks) public payable {
     require(orders[_id].id == 0x0);
-    require(_amount == msg.value);
-    orders[_id] = Order(_id, _itemId, _amount, _relayers, _shipper, _merchant, _customer, block.number + _maxBlocks, 1);
+    require(_amountEther == msg.value);
+    orders[_id] = Order(_id, _itemId, _amount, _amountEther, _relayers, _shipper, _merchant, _customer, block.number + _maxBlocks, 1);
 		emit OrderRecorded(_id, _itemId);
   }
 
@@ -67,10 +69,10 @@ contract Welandam is Ownable {
     require(orders[_id].status == 1);
     if (orders[_id].expirationBlock < block.number) {
       orders[_id].status = 3;
-      orders[_id].customer.transfer(orders[_id].amount);
+      orders[_id].customer.transfer(orders[_id].amountEther);
 			emit OrderExpired(_id, orders[_id].itemId);
     } else if (msg.sender == orders[_id].shipper) {
-      orders[_id].merchant.transfer(orders[_id].amount);
+      orders[_id].merchant.transfer(orders[_id].amountEther);
       orders[_id].status = 2;
 			emit OrderConfirmed(_id, orders[_id].itemId, orders[_id].shipper);
     }
@@ -79,7 +81,7 @@ contract Welandam is Ownable {
   function checkLockedOrder(bytes16 _id) public allowedToUnlock(_id) {
     if (orders[_id].expirationBlock < block.number) {
       orders[_id].status = 3;
-      orders[_id].customer.transfer(orders[_id].amount);
+      orders[_id].customer.transfer(orders[_id].amountEther);
 			emit OrderExpired(_id, orders[_id].itemId);
     }
   }
