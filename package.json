@@ -58,6 +58,9 @@
       "git add"
     ]
   },
+  "devDependencies": {
+    "web3-utils": "^1.0.0-beta.36"
+  },
   "dependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
@@ -103,6 +106,7 @@
     "node-sass": "^4.9.3",
     "nodemailer": "^4.6.8",
     "nodemailer-smtp-transport": "^2.7.4",
+    "openzeppelin-solidity": "1.12.0",
     "postcss-loader": "^3.0.0",
     "prettier": "^1.14.2",
     "prop-types": "^15.6.2",
