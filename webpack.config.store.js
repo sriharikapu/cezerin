@@ -11,6 +11,8 @@ module.exports = {
 		theme: ['theme']
 	},
 
+	devtool: 'eval-source-map',
+
 	performance: {
 		hints: false
 	},

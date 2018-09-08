@@ -119,19 +119,18 @@ const requestCart = () => ({ type: t.CART_REQUEST });
 const receiveCart = cart => ({ type: t.CART_RECEIVE, cart });
 
 export const addCartItem = item => async (dispatch, getState) => {
-	const id = 123;
-	const itemId = 1234;
+	console.log(item);
 	const amount = 100;
 
 	const transaction = await promisify(cb =>
 		Contracts.Welandam().recordOrder(
-			web.toHex(id), // id
-			itemId, // itemId
-			amount, // amount
-			['0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa'], // relayers
-			'0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa', // shipper
-			'0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa', // merchant
-			'0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa', // customer
+			web3.toHex(12), // id
+			item.product_id, // itemId
+			web3.toWei(amount, 'ether'), // amount
+			web3.eth.accounts, // relayers dummy for now
+			web3.eth.accounts[0], // shipper
+			web3.eth.accounts[0], // merchant
+			web3.eth.accounts[0], // customer
 			20, // maxBlocks
 			{ gasLimit: 4712388 },
 			cb
