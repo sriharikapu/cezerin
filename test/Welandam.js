@@ -23,7 +23,7 @@ contract('Welandam', accounts => {
 				);
 			});
 
-		await welandamInstance.recordOrder(
+		let tx = await welandamInstance.recordOrder(
 			x,
 			1,
 			web3.toWei(amount, 'ether'),
@@ -34,6 +34,10 @@ contract('Welandam', accounts => {
 			2,
 			{ from: accounts[0], value: web3.toWei(amount, 'ether') }
 		);
+
+		assert.equal(x, tx.logs[0].args.id);
+		assert.equal('OrderRecorded', tx.logs[0].event);
+
 		let order = await welandamInstance.orders(x);
 		assert.equal(order[0], x, 'order was not stored properly');
 		assert.equal(
@@ -66,9 +70,13 @@ contract('Welandam', accounts => {
 				);
 			});
 
-		await welandamInstance.confirmOrder(x, { from: accounts[0] });
+		tx = await welandamInstance.confirmOrder(x, { from: accounts[0] });
 		order = await welandamInstance.orders(x);
+
 		assert.equal(order[7], 2, 'status was not stored properly');
+		assert.equal('OrderConfirmed', tx.logs[0].event);
+		assert.equal(x, tx.logs[0].args.id);
+		assert.equal(accounts[0], tx.logs[0].args.by);
 
 		// Balance of ether in smart contract has been reduced
 		scbalance = await web3.eth.getBalance(welandamInstance.address);
@@ -148,7 +156,9 @@ contract('Welandam', accounts => {
 		);
 
 		// Confirmation on expired order changes status to Expired and transfers funds back to customer
-		await welandamInstance.confirmOrder(x, { from: accounts[0] });
+		let tx = await welandamInstance.confirmOrder(x, { from: accounts[0] });
+		assert.equal('OrderExpired', tx.logs[0].event);
+		assert.equal(x, tx.logs[0].args.id);
 		order = await welandamInstance.orders(x);
 		assert.equal(order[7], 3, 'status was not stored properly');
 	});
