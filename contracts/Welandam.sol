@@ -4,6 +4,10 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Welandam is Ownable {
 
+	event OrderRecorded(bytes16 indexed id, bytes16 indexed itemId);
+	event OrderConfirmed(bytes16 indexed id, bytes16 indexed itemId, address by);
+	event OrderExpired(bytes16 indexed id, bytes16 indexed itemId);
+
   mapping(bytes16 => Order) public orders;
 
   constructor() public {
@@ -52,6 +56,7 @@ contract Welandam is Ownable {
     require(orders[_id].id == 0x0);
     require(_amount == msg.value);
     orders[_id] = Order(_id, _itemId, _amount, _relayers, _shipper, _merchant, _customer, block.number + _maxBlocks, 1);
+		emit OrderRecorded(_id, _itemId);
   }
 
   function confirmOrder(bytes16 _id) public allowedToConfirm(_id) {
@@ -63,9 +68,11 @@ contract Welandam is Ownable {
     if (orders[_id].expirationBlock < block.number) {
       orders[_id].status = 3;
       orders[_id].customer.transfer(orders[_id].amount);
+			emit OrderExpired(_id, orders[_id].itemId);
     } else if (msg.sender == orders[_id].shipper) {
       orders[_id].merchant.transfer(orders[_id].amount);
       orders[_id].status = 2;
+			emit OrderConfirmed(_id, orders[_id].itemId, orders[_id].shipper);
     }
   }
 
@@ -73,6 +80,7 @@ contract Welandam is Ownable {
     if (orders[_id].expirationBlock < block.number) {
       orders[_id].status = 3;
       orders[_id].customer.transfer(orders[_id].amount);
+			emit OrderExpired(_id, orders[_id].itemId);
     }
   }
 
