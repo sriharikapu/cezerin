@@ -126,7 +126,8 @@ export const addCartItem = item => async (dispatch, getState) => {
 		Contracts.Welandam().recordOrder(
 			web3.toHex(12), // id
 			item.product_id, // itemId
-			web3.toWei(amount, 'ether'), // amount
+			amount, // amount usd
+			web3.toWei(amount, 'ether'), // amount ether
 			web3.eth.accounts, // relayers dummy for now
 			web3.eth.accounts[0], // shipper
 			web3.eth.accounts[0], // merchant
