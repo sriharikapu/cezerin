@@ -5,13 +5,13 @@ import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { BrowserRouter } from 'react-router-dom';
 import { initOnClient } from 'theme';
+import { DappRequirements } from 'react-dapp-requirements';
 import clientSettings from './settings';
 import reducers from '../shared/reducers';
 import * as analytics from '../shared/analytics';
 import App from '../shared/app';
 import api from './api';
-import { DappRequirements } from 'react-dapp-requirements';
-import Contracts from "./contrat-service";
+import Contracts from './contrat-service';
 
 const initialState = window.__APP_STATE__;
 const themeText = window.__APP_TEXT__;
@@ -20,7 +20,7 @@ initOnClient({
 	themeSettings: initialState.app.themeSettings,
 	text: themeText,
 	language: clientSettings.language,
-	api: api
+	api
 });
 
 const store = createStore(
@@ -29,14 +29,17 @@ const store = createStore(
 	applyMiddleware(thunkMiddleware)
 );
 
-const onNetworkReceived = (networkId) => {
-	console.log('Network',networkId);
+const onNetworkReceived = networkId => {
+	console.log('Network', networkId);
 	Contracts.setNetwork(networkId);
-}
+};
 
 ReactDOM.hydrate(
 	<Provider store={store}>
-		<DappRequirements supportedNetworks={Contracts.getSupportedNetworks()} onNetworkIdReceived={onNetworkReceived}>
+		<DappRequirements
+			supportedNetworks={Contracts.getSupportedNetworks()}
+			onNetworkIdReceived={onNetworkReceived}
+		>
 			<BrowserRouter>
 				<App />
 			</BrowserRouter>
@@ -52,7 +55,7 @@ if ('serviceWorker' in navigator) {
 		navigator.serviceWorker
 			.register('/sw.js')
 			.then(registration => {
-				console.log('SW registered.');
+				console.log('SW registered.', registration);
 			})
 			.catch(registrationError => {
 				console.log('SW registration failed: ', registrationError);
