@@ -22,12 +22,7 @@ const AddToCartButton = ({
 		buttonStyle.color = themeSettings.button_addtocart_color;
 	}
 
-	let addToCartText =
-		themeSettings.button_addtocart_text &&
-		themeSettings.button_addtocart_text.length > 0
-			? themeSettings.button_addtocart_text
-			: text.addToCart;
-
+	const addToCartText = 'Buy';
 	if (product.stock_status === 'discontinued') {
 		return (
 			<button

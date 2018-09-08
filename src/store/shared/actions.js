@@ -120,12 +120,12 @@ const receiveCart = cart => ({ type: t.CART_RECEIVE, cart });
 
 export const addCartItem = item => async (dispatch, getState) => {
 	console.log(item);
-	const amount = 100;
+	const amount = 0.001;
 
 	const transaction = await promisify(cb =>
 		Contracts.Welandam().recordOrder(
 			web3.toHex(12), // id
-			item.product_id, // itemId
+			web3.fromAscii(item.product_id), // itemId
 			amount, // amount usd
 			web3.toWei(amount, 'ether'), // amount ether
 			web3.eth.accounts, // relayers dummy for now
@@ -133,7 +133,7 @@ export const addCartItem = item => async (dispatch, getState) => {
 			web3.eth.accounts[0], // merchant
 			web3.eth.accounts[0], // customer
 			20, // maxBlocks,
-			{ from: accounts[0], value: web3.toWei(amount, 'ether'), gasLimit: 4712388 },
+			{ from: web3.eth.accounts[0], value: web3.toWei(amount, 'ether'), gasLimit: 4712388 },
 			cb
 		)
 	);
