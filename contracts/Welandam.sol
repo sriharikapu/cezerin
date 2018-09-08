@@ -5,6 +5,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 contract Welandam is Ownable {
 
   mapping(bytes16 => Order) public orders;
+	event OrderRecorded(bytes16 id, bytes16 itemId, uint64 amount);
 
   constructor() public {
     owner = msg.sender;
@@ -52,6 +53,7 @@ contract Welandam is Ownable {
     require(orders[_id].id == 0x0);
     require(_amount == msg.value);
     orders[_id] = Order(_id, _itemId, _amount, _relayers, _shipper, _merchant, _customer, block.number + _maxBlocks, 1);
+		emit OrderRecorded(_id, _itemId, _amount);
   }
 
   function confirmOrder(bytes16 _id) public allowedToConfirm(_id) {

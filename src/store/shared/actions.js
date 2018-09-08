@@ -1,10 +1,11 @@
-import * as t from './actionTypes';
-import { PAGE, PRODUCT_CATEGORY, PRODUCT, RESERVED, SEARCH } from './pageTypes';
 import queryString from 'query-string';
 import { animateScroll } from 'react-scroll';
+import { promisify } from 'react-dapp-requirements/src/utils';
+import * as t from './actionTypes';
+import { PAGE, PRODUCT_CATEGORY, PRODUCT, RESERVED, SEARCH } from './pageTypes';
 import api from '../client/api';
 import * as analytics from './analytics';
-
+import Contracts from '../client/contrat-service';
 const requestProduct = () => ({ type: t.PRODUCT_REQUEST });
 
 const receiveProduct = product => ({ type: t.PRODUCT_RECEIVE, product });
@@ -22,7 +23,7 @@ export const fetchProducts = () => async (dispatch, getState) => {
 export const getProductFilterForCategory = (locationSearch, sortBy) => {
 	const queryFilter = queryString.parse(locationSearch);
 
-	let attributes = {};
+	const attributes = {};
 	for (const querykey in queryFilter) {
 		if (querykey.startsWith('attributes.')) {
 			attributes[querykey] = queryFilter[querykey];
@@ -32,7 +33,7 @@ export const getProductFilterForCategory = (locationSearch, sortBy) => {
 	return {
 		priceFrom: parseInt(queryFilter.price_from || 0),
 		priceTo: parseInt(queryFilter.price_to || 0),
-		attributes: attributes,
+		attributes,
 		search: null,
 		sort: sortBy
 	};
@@ -59,9 +60,9 @@ export const getParsedProductFilter = productFilter => {
 			category_id: productFilter.categoryId,
 			price_from: productFilter.priceFrom,
 			price_to: productFilter.priceTo,
-			sort: productFilter['sort'],
-			fields: productFilter['fields'],
-			limit: productFilter['limit'],
+			sort: productFilter.sort,
+			fields: productFilter.fields,
+			limit: productFilter.limit,
 			offset: 0
 		},
 		productFilter.attributes
@@ -83,17 +84,16 @@ export const fetchMoreProducts = () => async (dispatch, getState) => {
 		!app.productsHasMore
 	) {
 		return;
-	} else {
-		dispatch(requestMoreProducts());
-
-		const filter = getParsedProductFilter(app.productFilter);
-		filter.offset = app.products.length;
-
-		const response = await api.ajax.products.list(filter);
-		const products = response.json;
-		dispatch(receiveMoreProducts(products));
-		animateScroll.scrollMore(200);
 	}
+	dispatch(requestMoreProducts());
+
+	const filter = getParsedProductFilter(app.productFilter);
+	filter.offset = app.products.length;
+
+	const response = await api.ajax.products.list(filter);
+	const products = response.json;
+	dispatch(receiveMoreProducts(products));
+	animateScroll.scrollMore(200);
 };
 
 const requestMoreProducts = () => ({ type: t.MORE_PRODUCTS_REQUEST });
@@ -119,14 +119,41 @@ const requestCart = () => ({ type: t.CART_REQUEST });
 const receiveCart = cart => ({ type: t.CART_RECEIVE, cart });
 
 export const addCartItem = item => async (dispatch, getState) => {
-	dispatch(requestAddCartItem());
-	const response = await api.ajax.cart.addItem(item);
-	const cart = response.json;
-	dispatch(receiveCart(cart));
-	analytics.addCartItem({
-		item: item,
-		cart: cart
-	});
+	const id = 123;
+	const itemId = 1234;
+	const amount = 100;
+
+	const transaction = await promisify(cb =>
+		Contracts.Welandam().recordOrder(
+			web.toHex(id), // id
+			itemId, // itemId
+			amount, // amount
+			['0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa'], // relayers
+			'0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa', // shipper
+			'0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa', // merchant
+			'0x9Ea51E4933b34110301d65Cd4780E5f91b62D5fa', // customer
+			20, // maxBlocks
+			{ gasLimit: 4712388 },
+			cb
+		)
+	);
+
+	const orderReceived = await promisify(
+		Contracts.Welandam()
+			.OrderRecorded({ id, itemId, amount })
+			.watch(cb)
+	);
+	console.log(transaction);
+	console.log(orderReceived);
+
+	// dispatch(requestAddCartItem());
+	// const response = await api.ajax.cart.addItem(item);
+	// const cart = response.json;
+	// dispatch(receiveCart(cart));
+	// analytics.addCartItem({
+	// 	item: item,
+	// 	cart: cart
+	// });
 };
 
 const requestAddCartItem = () => ({ type: t.CART_ITEM_ADD_REQUEST });
@@ -137,7 +164,7 @@ export const updateCartItemQuantiry = (item_id, quantity) => async (
 ) => {
 	dispatch(requestUpdateCartItemQuantiry());
 	const response = await api.ajax.cart.updateItem(item_id, {
-		quantity: quantity
+		quantity
 	});
 	dispatch(receiveCart(response.json));
 	dispatch(fetchShippingMethods());
@@ -216,7 +243,7 @@ export const checkout = (cart, history) => async (dispatch, getState) => {
 	const order = response.json;
 	dispatch(receiveCheckout(order));
 	history.push('/checkout-success');
-	analytics.checkoutSuccess({ order: order });
+	analytics.checkoutSuccess({ order });
 };
 
 const requestCheckout = () => ({ type: t.CHECKOUT_REQUEST });
@@ -238,7 +265,7 @@ export const setCategory = categoryId => (dispatch, getState) => {
 	const category = app.categories.find(c => c.id === categoryId);
 	if (category) {
 		dispatch(setCurrentCategory(category));
-		dispatch(setProductsFilter({ categoryId: categoryId }));
+		dispatch(setProductsFilter({ categoryId }));
 		dispatch(receiveProduct(null));
 	}
 };
@@ -249,13 +276,13 @@ const setCurrentCategory = category => ({
 });
 
 export const setSort = sort => (dispatch, getState) => {
-	dispatch(setProductsFilter({ sort: sort }));
+	dispatch(setProductsFilter({ sort }));
 	dispatch(fetchProducts());
 };
 
 const setProductsFilter = filter => ({
 	type: t.SET_PRODUCTS_FILTER,
-	filter: filter
+	filter
 });
 
 export const analyticsSetShippingMethod = method_id => (dispatch, getState) => {

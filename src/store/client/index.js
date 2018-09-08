@@ -11,6 +11,7 @@ import * as analytics from '../shared/analytics';
 import App from '../shared/app';
 import api from './api';
 import { DappRequirements } from 'react-dapp-requirements';
+import Contracts from "./contrat-service";
 
 const initialState = window.__APP_STATE__;
 const themeText = window.__APP_TEXT__;
@@ -28,9 +29,14 @@ const store = createStore(
 	applyMiddleware(thunkMiddleware)
 );
 
+const onNetworkReceived = (networkId) => {
+	console.log('Network',networkId);
+	Contracts.setNetwork(networkId);
+}
+
 ReactDOM.hydrate(
 	<Provider store={store}>
-		<DappRequirements supportedNetworks={['4']}>
+		<DappRequirements supportedNetworks={Contracts.getSupportedNetworks()} onNetworkIdReceived={onNetworkReceived}>
 			<BrowserRouter>
 				<App />
 			</BrowserRouter>
