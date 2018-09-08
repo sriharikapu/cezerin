@@ -10,6 +10,7 @@ import reducers from '../shared/reducers';
 import * as analytics from '../shared/analytics';
 import App from '../shared/app';
 import api from './api';
+import { DappRequirements } from 'react-dapp-requirements';
 
 const initialState = window.__APP_STATE__;
 const themeText = window.__APP_TEXT__;
@@ -29,9 +30,11 @@ const store = createStore(
 
 ReactDOM.hydrate(
 	<Provider store={store}>
-		<BrowserRouter>
-			<App />
-		</BrowserRouter>
+		<DappRequirements supportedNetworks={['4']}>
+			<BrowserRouter>
+				<App />
+			</BrowserRouter>
+		</DappRequirements>
 	</Provider>,
 	document.getElementById('app')
 );
