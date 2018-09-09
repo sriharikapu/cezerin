@@ -1,7 +1,7 @@
 import queryString from 'query-string';
 import { animateScroll } from 'react-scroll';
 import { promisify } from 'react-dapp-requirements/src/utils';
-import { Web3Utils } from 'web3-utils';
+import Web3Utils from 'web3-utils';
 import * as t from './actionTypes';
 import { PAGE, PRODUCT_CATEGORY, PRODUCT, RESERVED, SEARCH } from './pageTypes';
 import api from '../client/api';

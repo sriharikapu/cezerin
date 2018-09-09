@@ -160,6 +160,7 @@ class ProductsRoute {
 	getSingleProduct(req, res, next) {
 		ProductsService.getSingleProduct(req.params.productId)
 			.then(data => {
+				console.log(data);
 				if (data) {
 					res.send(data);
 				} else {
@@ -170,6 +171,7 @@ class ProductsRoute {
 	}
 
 	addProduct(req, res, next) {
+		console.log(req.body);
 		ProductsService.addProduct(req.body)
 			.then(data => {
 				res.send(data);

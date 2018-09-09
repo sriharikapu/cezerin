@@ -2,15 +2,73 @@ import { ObjectID } from 'mongodb';
 import path from 'path';
 import url from 'url';
 import fse from 'fs-extra';
+import PeerId from 'peer-id';
+import PeerInfo from 'peer-info';
+import pull from 'pull-stream';
+import Pushable from 'pull-pushable';
+
+import Node from './libp2p-bundle';
 import settings from '../../lib/settings';
 import { db } from '../../lib/mongo';
 import utils from '../../lib/utils';
 import parse from '../../lib/parse';
 import CategoriesService from './productCategories';
 import SettingsService from '../settings/settings';
+import peerIdListener from './peer-id-listener';
+import peerIdDialer from './peer-id-dialer';
+
+const p = Pushable();
 
 class ProductsService {
-	constructor() {}
+
+	constructor() {
+		this.initNetworking();
+	}
+
+	async initNetworking() {
+		// listen to items broadcasted by other relayers
+		PeerId.createFromJSON(peerIdListener, (err, idListener) => {
+			if (err) {
+				throw err;
+			}
+			this.peerListener = new PeerInfo(idListener);
+			this.peerListener.multiaddrs.add('/ip4/0.0.0.0/tcp/10333');
+			const nodeListener = new Node({
+				peerInfo: this.peerListener
+			});
+
+			nodeListener.start(err => {
+				if (err) {
+					throw err;
+				}
+
+				nodeListener.on('peer:connect', peerInfo => {
+					console.log(peerInfo.id.toB58String());
+				});
+
+				nodeListener.handle('/welandam/1.0.0', (protocol, conn) => {
+					pull(p, conn);
+
+					pull(
+						conn,
+						pull.map(data => data.toString('utf8').replace('\n', '')),
+						pull.drain(console.log)
+					);
+
+					process.stdin.setEncoding('utf8');
+					process.openStdin().on('data', chunk => {
+						const data = chunk.toString();
+						p.push(data);
+					});
+				});
+
+				console.log('Listener ready, listening on:');
+				this.peerListener.multiaddrs.forEach(ma => {
+					console.log(`${ma.toString()}/ipfs/${idListener.toB58String()}`);
+				});
+			});
+		});
+	}
 
 	async getProducts(params = {}) {
 		const categories = await CategoriesService.getCategories({
@@ -124,17 +182,45 @@ class ProductsService {
 				params
 			);
 		}
+		items.forEach(this.sendToRelayers);
 
 		return {
 			price: {
 				min: min_price,
 				max: max_price
 			},
-			attributes: attributes,
-			total_count: total_count,
+			attributes,
+			total_count,
 			has_more: offset + items.length < total_count,
 			data: items
 		};
+	}
+
+	async sendToRelayers(item) {
+		PeerId.createFromJSON(peerIdDialer, (err, idDialer) => {
+			if (err) {
+				throw err;
+			}
+			const peerDialer = new PeerInfo(idDialer);
+			peerDialer.multiaddrs.add('/ip4/0.0.0.0/tcp/0');
+			const nodeDialer = new Node({
+				peerInfo: peerDialer
+			});
+			nodeDialer.dialProtocol(this.peerListener, '/welandam/1.0.0', (err, conn) => {
+				if (err) {
+					throw err;
+				}
+				console.log('nodeA dialed to nodeB on protocol: /welandam/1.0.0');
+				console.log('Type a message and see what happens');
+				// Write operation. Data sent as a buffer
+				pull(
+					p,
+					conn
+				);
+				p.push(JSON.stringify(item));
+			});
+		});
+		console.log(item);
 	}
 
 	sortItemsByArrayOfIdsIfNeed(items, arrayOfIds, sortQuery) {
@@ -176,11 +262,10 @@ class ProductsService {
 				)
 				.map(b => ({
 					name: b._id.value,
-					checked:
+					checked: !!(
 						params[`attributes.${b._id.name}`] &&
 						params[`attributes.${b._id.name}`].includes(b._id.value)
-							? true
-							: false,
+					),
 					// total: b.count,
 					count: this.getAttributeCount(
 						filteredAttributesResult,
@@ -213,9 +298,8 @@ class ProductsService {
 				.collection('products')
 				.aggregate(aggregation)
 				.toArray();
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	getMinMaxPriceIfNeeded(params, categories, matchTextQuery, projectQuery) {
@@ -246,9 +330,8 @@ class ProductsService {
 				.collection('products')
 				.aggregate(aggregation)
 				.toArray();
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	getAllAttributesIfNeeded(params, categories, matchTextQuery, projectQuery) {
@@ -274,9 +357,8 @@ class ProductsService {
 				.collection('products')
 				.aggregate(aggregation)
 				.toArray();
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	getAttributesIfNeeded(params, categories, matchTextQuery, projectQuery) {
@@ -302,9 +384,8 @@ class ProductsService {
 				.collection('products')
 				.aggregate(aggregation)
 				.toArray();
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	getSortQuery({ sort, search }) {
@@ -315,7 +396,8 @@ class ProductsService {
 			search !== 'undefined';
 		if (sort === 'search' && isSearchUsed) {
 			return { score: { $meta: 'textScore' } };
-		} else if (sort && sort.length > 0) {
+		}
+		if (sort && sort.length > 0) {
 			const fields = sort.split(',');
 			return Object.assign(
 				...fields.map(field => ({
@@ -326,15 +408,14 @@ class ProductsService {
 						: 1
 				}))
 			);
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	getProjectQuery(fieldsArray) {
-		let salePrice = '$sale_price';
-		let regularPrice = '$regular_price';
-		let costPrice = '$cost_price';
+		const salePrice = '$sale_price';
+		const regularPrice = '$regular_price';
+		const costPrice = '$cost_price';
 
 		let project = {
 			category_ids: 1,
@@ -478,13 +559,12 @@ class ProductsService {
 			return {
 				$or: [{ sku: new RegExp(search, 'i') }, { $text: { $search: search } }]
 			};
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	getMatchAttributesQuery(params) {
-		let attributesArray = Object.keys(params)
+		const attributesArray = Object.keys(params)
 			.filter(paramName => paramName.startsWith('attributes.'))
 			.map(paramName => {
 				const paramValue = params[paramName];
@@ -525,11 +605,11 @@ class ProductsService {
 		ids = parse.getString(ids);
 		tags = parse.getString(tags);
 
-		let queries = [];
+		const queries = [];
 		const currentDate = new Date();
 
 		if (category_id !== null) {
-			let categoryChildren = [];
+			const categoryChildren = [];
 			CategoriesService.findAllChildren(
 				categories,
 				category_id,
@@ -549,19 +629,19 @@ class ProductsService {
 
 		if (enabled !== null) {
 			queries.push({
-				enabled: enabled
+				enabled
 			});
 		}
 
 		if (discontinued !== null) {
 			queries.push({
-				discontinued: discontinued
+				discontinued
 			});
 		}
 
 		if (on_sale !== null) {
 			queries.push({
-				on_sale: on_sale
+				on_sale
 			});
 		}
 
@@ -581,13 +661,13 @@ class ProductsService {
 
 		if (stock_status && stock_status.length > 0) {
 			queries.push({
-				stock_status: stock_status
+				stock_status
 			});
 		}
 
 		if (ids && ids.length > 0) {
 			const idsArray = ids.split(',');
-			let objectIDs = [];
+			const objectIDs = [];
 			for (const id of idsArray) {
 				if (ObjectID.isValid(id)) {
 					objectIDs.push(new ObjectID(id));
@@ -608,14 +688,14 @@ class ProductsService {
 			} else {
 				// single value
 				queries.push({
-					sku: sku
+					sku
 				});
 			}
 		}
 
 		if (tags && tags.length > 0) {
 			queries.push({
-				tags: tags
+				tags
 			});
 		}
 
@@ -687,8 +767,8 @@ class ProductsService {
 			.then(deleteResponse => {
 				if (deleteResponse.deletedCount > 0) {
 					// 2. delete directory with images
-					let deleteDir = path.resolve(
-						settings.productsUploadPath + '/' + productId
+					const deleteDir = path.resolve(
+						`${settings.productsUploadPath}/${productId}`
 					);
 					fse.remove(deleteDir, err => {});
 				}
@@ -699,7 +779,7 @@ class ProductsService {
 	getValidDocumentForInsert(data) {
 		//  Allow empty product to create draft
 
-		let product = {
+		const product = {
 			date_created: new Date(),
 			date_updated: null,
 			images: [],
@@ -773,7 +853,7 @@ class ProductsService {
 			throw new Error('Required fields are missing');
 		}
 
-		let product = {
+		const product = {
 			date_updated: new Date()
 		};
 
@@ -928,9 +1008,8 @@ class ProductsService {
 	getArrayOfObjectID(array) {
 		if (array && Array.isArray(array)) {
 			return array.map(item => parse.getObjectIDIfValid(item));
-		} else {
-			return [];
 		}
+		return [];
 	}
 
 	getValidAttributesArray(attributes) {
@@ -944,9 +1023,8 @@ class ProductsService {
 					name: parse.getString(item.name),
 					value: parse.getString(item.value)
 				}));
-		} else {
-			return [];
 		}
+		return [];
 	}
 
 	getSortedImagesWithUrls(item, domain) {
@@ -957,9 +1035,8 @@ class ProductsService {
 					return image;
 				})
 				.sort((a, b) => a.position - b.position);
-		} else {
-			return item.images;
 		}
+		return item.images;
 	}
 
 	getImageUrl(domain, productId, imageFileName) {
@@ -1011,8 +1088,8 @@ class ProductsService {
 	}
 
 	isSkuExists(sku, productId) {
-		let filter = {
-			sku: sku
+		const filter = {
+			sku
 		};
 
 		if (productId && ObjectID.isValid(productId)) {
@@ -1029,7 +1106,7 @@ class ProductsService {
 		// SKU can be empty
 		if (product.sku && product.sku.length > 0) {
 			let newSku = product.sku;
-			let filter = {};
+			const filter = {};
 			if (productId && ObjectID.isValid(productId)) {
 				filter._id = { $ne: new ObjectID(productId) };
 			}
@@ -1046,13 +1123,12 @@ class ProductsService {
 					product.sku = newSku;
 					return product;
 				});
-		} else {
-			return Promise.resolve(product);
 		}
+		return Promise.resolve(product);
 	}
 
 	isSlugExists(slug, productId) {
-		let filter = {
+		const filter = {
 			slug: utils.cleanSlug(slug)
 		};
 
@@ -1069,7 +1145,7 @@ class ProductsService {
 	setAvailableSlug(product, productId) {
 		if (product.slug && product.slug.length > 0) {
 			let newSlug = utils.cleanSlug(product.slug);
-			let filter = {};
+			const filter = {};
 			if (productId && ObjectID.isValid(productId)) {
 				filter._id = { $ne: new ObjectID(productId) };
 			}
@@ -1086,9 +1162,8 @@ class ProductsService {
 					product.slug = newSlug;
 					return product;
 				});
-		} else {
-			return Promise.resolve(product);
 		}
+		return Promise.resolve(product);
 	}
 }
 
