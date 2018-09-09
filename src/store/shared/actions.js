@@ -122,10 +122,11 @@ const receiveCart = cart => ({ type: t.CART_RECEIVE, cart });
 export const addCartItem = item => async (dispatch, getState) => {
 	console.log(item);
 	const amount = 0.001;
-
+	let orderId = Web3Utils.randomHex(16);
+	let itemId = item.product_id;
 	const transaction = await promisify(cb =>
 		Contracts.Welandam().recordOrder(
-			Web3Utils.randomHex(16), // id
+			orderId, // id
 			web3.fromAscii(item.product_id), // itemId
 			amount, // amount usd
 			web3.toWei(amount, 'ether'), // amount ether
@@ -139,13 +140,15 @@ export const addCartItem = item => async (dispatch, getState) => {
 		)
 	);
 
-	const orderReceived = await promisify(
-		Contracts.Welandam()
-			.OrderRecorded({ id, itemId, amount })
-			.watch(cb)
-	);
-	console.log(transaction);
-	console.log(orderReceived);
+	// const orderReceived = await promisify(
+	// 	Contracts.Welandam()
+	// 		.OrderRecorded({ orderId, itemId, amount })
+	// 		// .watch(cb)
+	// );
+
+	alert("Transaction to be completed, watch for Metamask events on TxId: "+transaction);
+	// console.log(transaction);
+	// console.log(orderReceived);
 
 	// dispatch(requestAddCartItem());
 	// const response = await api.ajax.cart.addItem(item);
