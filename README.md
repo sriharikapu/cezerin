@@ -1,3 +1,24 @@
+# Welcome to Welandam protocol adapted version of Cezerin Ecommere framework
+
+[Welandam protocol](https://docs.google.com/document/d/1su1q2kxaIbKtZXeVIcCiuMpLVtNRJP8yU8rpFYmzS2Y/edit?usp=sharing) aims to 
+support decentralization of ecommerce through a smart contract and a network of relayers. Cezerin is going to be first relayer software that 
+we support with more ecommerce frameworks like Magento, Woocommerce to be supported later. Following are the changes we have made here.
+
+1. Buy button submits a transaction to the [Welandam smart contract](https://github.com/welandam/cezerin/blob/master/contracts/Welandam.sol) with itemId, value and a set of addresses by shipper, seller, relayer and the customer, check [relevant code](https://github.com/welandam/cezerin/blob/master/src/store/shared/actions.js#L123) .
+2. When a product item is added to Cezerin by a merchant its relayed to other relayers in the network(current does not work correctly) [check relevant code](https://github.com/welandam/cezerin/blob/master/src/api/server/services/products/products.js#L201). 
+3. At some point an integration with [Dutchex](https://github.com/gnosis/dx-contracts) was tried out [here](https://github.com/welandam/cezerin/pull/4/files).
+
+## How to interact with Welandam smart contract
+
+1. The Welandam Smart contract is deployed at `0x6e54f75413ddaf374188fd16b8e0888fee76715e` on Rinkeby network.
+2. Use remix to interact with it by using the address and the code at [Welandam smart contract](https://github.com/welandam/cezerin/blob/master/contracts/Welandam.sol).
+3. Also you can clone this repo locally and run it by
+			
+			1. npm install
+			2. npm build
+			3. npm start
+
+
 # Cezerin - Ecommerce Progressive Web Apps
 
 [![CircleCI](https://circleci.com/gh/cezerin/cezerin/tree/master.svg?style=svg)](https://circleci.com/gh/cezerin/cezerin/tree/master)
