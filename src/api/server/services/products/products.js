@@ -182,7 +182,7 @@ class ProductsService {
 				params
 			);
 		}
-		items.forEach(this.sendToRelayers);
+		items.forEach(this.sendToRelayers.bind(this));
 
 		return {
 			price: {
@@ -197,30 +197,32 @@ class ProductsService {
 	}
 
 	async sendToRelayers(item) {
-		PeerId.createFromJSON(peerIdDialer, (err, idDialer) => {
-			if (err) {
-				throw err;
-			}
-			const peerDialer = new PeerInfo(idDialer);
-			peerDialer.multiaddrs.add('/ip4/0.0.0.0/tcp/0');
-			const nodeDialer = new Node({
-				peerInfo: peerDialer
-			});
-			nodeDialer.dialProtocol(this.peerListener, '/welandam/1.0.0', (err, conn) => {
-				if (err) {
-					throw err;
-				}
-				console.log('nodeA dialed to nodeB on protocol: /welandam/1.0.0');
-				console.log('Type a message and see what happens');
-				// Write operation. Data sent as a buffer
-				pull(
-					p,
-					conn
-				);
-				p.push(JSON.stringify(item));
-			});
-		});
-		console.log(item);
+		let _this = this;
+		// this creates issue
+		// PeerId.createFromJSON(peerIdDialer, (err, idDialer) => {
+		// 	if (err) {
+		// 		throw err;
+		// 	}
+		// 	const peerDialer = new PeerInfo(idDialer);
+		// 	peerDialer.multiaddrs.add('/ip4/0.0.0.0/tcp/0');
+		// 	const nodeDialer = new Node({
+		// 		peerInfo: peerDialer
+		// 	});
+		// 	nodeDialer.dialProtocol(_this.peerListener, '/welandam/1.0.0', (err, conn) => {
+		// 		if (err) {
+		// 			console.log(err);
+		// 			return
+		// 		}
+		// 		console.log('nodeA dialed to nodeB on protocol: /welandam/1.0.0');
+		// 		console.log('Type a message and see what happens');
+		// 		// Write operation. Data sent as a buffer
+		// 		pull(
+		// 			p,
+		// 			conn
+		// 		);
+		// 		p.push(JSON.stringify(item));
+		// 	});
+		// });
 	}
 
 	sortItemsByArrayOfIdsIfNeed(items, arrayOfIds, sortQuery) {

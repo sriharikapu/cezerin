@@ -1,5 +1,5 @@
 import * as config from '../../../build/contracts/Welandam.json';
-import * as configOracle from '../../../build/contracts/PriceOracleInterface.json';
+//import * as configOracle from '../../../build/contracts/PriceOracleInterface.json';
 
 let welandam = null;
 let dxOracle = null;
@@ -31,9 +31,9 @@ export default class Contracts {
 		welandam = web3.eth
 			.contract(config.abi)
 			.at(config.networks[selectedNetwork].address);
-		dxOracle = web3.eth
-			.contract(configOracle.abi)
-			.at(configOracle.networks[selectedNetwork].address);
+		// dxOracle = web3.eth
+		// 	.contract(configOracle.abi)
+		// 	.at(configOracle.networks[selectedNetwork].address);
 		// Display this item details
 		// let usdEthPrice = dxOracle.getUSDETHPrice();
 		// When hitting buy, set the correct value in metamask
