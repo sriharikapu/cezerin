@@ -4,9 +4,9 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Welandam is Ownable {
 
-  event OrderRecorded(bytes16 indexed id, bytes16 indexed itemId, uint64 amount);
-  event OrderConfirmed(bytes16 indexed id, bytes16 indexed itemId, address by);
-  event OrderExpired(bytes16 indexed id, bytes16 indexed itemId);
+  event OrderRecorded(bytes16 indexed id, bytes32 indexed itemId, uint64 amount);
+  event OrderConfirmed(bytes16 indexed id, bytes32 indexed itemId, address by);
+  event OrderExpired(bytes16 indexed id, bytes32 indexed itemId);
 
   mapping(bytes16 => Order) public orders;
 
@@ -16,7 +16,7 @@ contract Welandam is Ownable {
 
   struct Order {
     bytes16 id;
-    bytes16 itemId;
+    bytes32 itemId;
     // original amount in USD
 		uint64 amount;
     // amount payable in ether
@@ -54,7 +54,17 @@ contract Welandam is Ownable {
     return orders[_id].relayers;
   }
 
-  function recordOrder(bytes16 _id, bytes16 _itemId, uint64 _amount, uint256 _amountEther, address[] _relayers, address _shipper, address _merchant, address _customer, uint256 _maxBlocks) public payable {
+  function recordOrder(
+		bytes16 _id,
+		bytes32 _itemId,
+		uint64 _amount,
+		uint256 _amountEther,
+		address[] _relayers,
+		address _shipper,
+		address _merchant,
+		address _customer,
+		uint256 _maxBlocks
+	) public payable {
     require(orders[_id].id == 0x0);
     require(_amountEther == msg.value);
     orders[_id] = Order(_id, _itemId, _amount, _amountEther, _relayers, _shipper, _merchant, _customer, block.number + _maxBlocks, 1);

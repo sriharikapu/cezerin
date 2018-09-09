@@ -1,6 +1,7 @@
 import queryString from 'query-string';
 import { animateScroll } from 'react-scroll';
 import { promisify } from 'react-dapp-requirements/src/utils';
+import { Web3Utils } from 'web3-utils';
 import * as t from './actionTypes';
 import { PAGE, PRODUCT_CATEGORY, PRODUCT, RESERVED, SEARCH } from './pageTypes';
 import api from '../client/api';
@@ -124,7 +125,7 @@ export const addCartItem = item => async (dispatch, getState) => {
 
 	const transaction = await promisify(cb =>
 		Contracts.Welandam().recordOrder(
-			web3.toHex(12), // id
+			Web3Utils.randomHex(16), // id
 			web3.fromAscii(item.product_id), // itemId
 			amount, // amount usd
 			web3.toWei(amount, 'ether'), // amount ether
